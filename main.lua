@@ -378,7 +378,7 @@ local function disableESP()
     end
 end
 
-MainTab:CreateToggle("ESP", function(Value)
+VisualsTab:CreateToggle("ESP", function(Value)
     if Value then
         enableESP()
     else
