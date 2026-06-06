@@ -378,10 +378,175 @@ local function disableESP()
     end
 end
 
-VisualsTab:CreateToggle("ESP", function(Value)
+VisualsTab:CreateToggle("Team Check", function(Value)
     if Value then
         enableESP()
     else
         disableESP()
+    end
+end)
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Teams = game:GetService("Teams")
+
+local TARGET_TEAM_NAME = "Play"
+local Thickness = 2
+local Transparency = 1
+
+local ALLY_COLOR = Color3.fromRGB(255, 255, 255)
+local ENEMY_COLOR = Color3.fromRGB(255, 0, 0)
+
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local skeletons = {}
+
+local function isOnTargetTeam(plr)
+    return plr.Team and plr.Team.Name == TARGET_TEAM_NAME
+end
+
+local function getColor(plr)
+    return isOnTargetTeam(plr) and ALLY_COLOR or ENEMY_COLOR
+end
+
+local function createLine()
+    return Drawing.new("Line")
+end
+
+local function removeSkeleton(skeleton)
+    for _, line in pairs(skeleton) do
+        line:Remove()
+    end
+end
+
+local function trackPlayer(plr)
+    local skeleton = {}
+
+    local function updateSkeleton()
+        if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then
+            for _, line in pairs(skeleton) do
+                line.Visible = false
+            end
+            return
+        end
+
+        local character = plr.Character
+        local humanoid = character:FindFirstChild("Humanoid")
+        local joints, connections = {}, {}
+
+        if humanoid and humanoid.RigType == Enum.HumanoidRigType.R15 then
+            joints = {
+                Head = character:FindFirstChild("Head"),
+                UpperTorso = character:FindFirstChild("UpperTorso"),
+                LowerTorso = character:FindFirstChild("LowerTorso"),
+                LeftUpperArm = character:FindFirstChild("LeftUpperArm"),
+                LeftLowerArm = character:FindFirstChild("LeftLowerArm"),
+                LeftHand = character:FindFirstChild("LeftHand"),
+                RightUpperArm = character:FindFirstChild("RightUpperArm"),
+                RightLowerArm = character:FindFirstChild("RightLowerArm"),
+                RightHand = character:FindFirstChild("RightHand"),
+                LeftUpperLeg = character:FindFirstChild("LeftUpperLeg"),
+                LeftLowerLeg = character:FindFirstChild("LeftLowerLeg"),
+                RightUpperLeg = character:FindFirstChild("RightUpperLeg"),
+                RightLowerLeg = character:FindFirstChild("RightLowerLeg"),
+            }
+            connections = {
+                { "Head", "UpperTorso" },
+                { "UpperTorso", "LowerTorso" },
+                { "LowerTorso", "LeftUpperLeg" },
+                { "LeftUpperLeg", "LeftLowerLeg" },
+                { "LowerTorso", "RightUpperLeg" },
+                { "RightUpperLeg", "RightLowerLeg" },
+                { "UpperTorso", "LeftUpperArm" },
+                { "LeftUpperArm", "LeftLowerArm" },
+                { "LeftLowerArm", "LeftHand" },
+                { "UpperTorso", "RightUpperArm" },
+                { "RightUpperArm", "RightLowerArm" },
+                { "RightLowerArm", "RightHand" },
+            }
+        elseif humanoid and humanoid.RigType == Enum.HumanoidRigType.R6 then
+            joints = {
+                Head = character:FindFirstChild("Head"),
+                Torso = character:FindFirstChild("Torso"),
+                LeftLeg = character:FindFirstChild("Left Leg"),
+                RightLeg = character:FindFirstChild("Right Leg"),
+                LeftArm = character:FindFirstChild("Left Arm"),
+                RightArm = character:FindFirstChild("Right Arm"),
+            }
+            connections = {
+                { "Head", "Torso" },
+                { "Torso", "LeftArm" },
+                { "Torso", "RightArm" },
+                { "Torso", "LeftLeg" },
+                { "Torso", "RightLeg" },
+            }
+        end
+
+        local color = getColor(plr)
+
+        for index, connection in ipairs(connections) do
+            local jointA = joints[connection[1]]
+            local jointB = joints[connection[2]]
+
+            if jointA and jointB then
+                local posA, onScreenA = camera:WorldToViewportPoint(jointA.Position)
+                local posB, onScreenB = camera:WorldToViewportPoint(jointB.Position)
+
+                local line = skeleton[index] or createLine()
+                skeleton[index] = line
+
+                line.Color = color
+                line.Thickness = Thickness
+                line.Transparency = Transparency
+
+                if onScreenA and onScreenB then
+                    line.From = Vector2.new(posA.X, posA.Y)
+                    line.To = Vector2.new(posB.X, posB.Y)
+                    line.Visible = true
+                else
+                    line.Visible = false
+                end
+            elseif skeleton[index] then
+                skeleton[index].Visible = false
+            end
+        end
+    end
+
+    skeletons[plr] = skeleton
+
+    RunService.RenderStepped:Connect(function()
+        if plr and plr.Parent then
+            updateSkeleton()
+        else
+            removeSkeleton(skeleton)
+        end
+    end)
+end
+
+local function untrackPlayer(plr)
+    if skeletons[plr] then
+        removeSkeleton(skeletons[plr])
+        skeletons[plr] = nil
+    end
+end
+
+VisualsTab:CreateToggle("Skeleton ESP", function(Value)
+    if Value then
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= player then
+                trackPlayer(plr)
+            end
+        end
+        Players.PlayerAdded:Connect(function(plr)
+            if plr ~= player then
+                trackPlayer(plr)
+            end
+        end)
+        Players.PlayerRemoving:Connect(untrackPlayer)
+    else
+        for _, plr in pairs(skeletons) do
+            removeSkeleton(skeletons[plr])
+        end
+        skeletons = {}
     end
 end)
