@@ -120,60 +120,46 @@ MainTab:CreateToggle("Aimbot", function(Value)
 end)
 
 -- Fov Circle (Aimbot)
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-
 local fovRadius = 0
 local fovCircle = Drawing.new("Circle")
 fovCircle.Visible = false
-fovCircle.Color = Color3.fromRGB(255, 255, 255)
+fovCircle.Color = Color3.fromRGB(255, 0, 0)
 fovCircle.Thickness = 1.5
 fovCircle.Filled = false
 fovCircle.NumSides = 64
 
-local function updateFOVCircle()
-	local center = Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y / 2)
-	fovCircle.Position = center
-	fovCircle.Radius = fovRadius
-end
-
 RunService.RenderStepped:Connect(function()
 	if fovCircle.Visible then
-		updateFOVCircle()
+		local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+		fovCircle.Position = center
+		fovCircle.Radius = fovRadius
 	end
 end)
 
-AimbotTab:CreateSlider("FOV Size", 0, 500, function(Value)
+AimbotTab:CreateSlider("FOV Size", 0, 200, function(Value)
 	fovRadius = Value
-	if Value > 0 then
-		fovCircle.Visible = true
-	else
-		fovCircle.Visible = false
-	end
+	fovCircle.Visible = Value > 0
 end)
 
 -- Auto-Fire (Aimbot)
+local autoFireConnection
+
 MainTab:CreateToggle("Auto-Fire", function(Value)
-    if Value then
-        autoFireConnection = RunService.RenderStepped:Connect(function()
-            if not DEBUG 
-                and getfenv().mouse1click 
-                and IsComputer 
-                and Triggering 
-                and (Configuration.SmartTriggerBot and Aiming or not Configuration.SmartTriggerBot) 
-                and Mouse.Target 
-                and IsReady(Mouse.Target:FindFirstAncestorWhichIsA("Model")) 
-                and MathHandler:CalculateChance(Configuration.TriggerBotChance) then
-                    getfenv().mouse1click()
-            end
-        end)
-    else
-        if autoFireConnection then
-            autoFireConnection:Disconnect()
-            autoFireConnection = nil
-        end
-    end
+	if Value then
+		autoFireConnection = RunService.RenderStepped:Connect(function()
+			local target = getClosestPlayer()
+			if target then
+				if getfenv().mouse1click then
+					getfenv().mouse1click()
+				end
+			end
+		end)
+	else
+		if autoFireConnection then
+			autoFireConnection:Disconnect()
+			autoFireConnection = nil
+		end
+	end
 end)
 
 local VisualsTab = Window:CreateTab({
