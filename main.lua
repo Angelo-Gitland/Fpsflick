@@ -203,90 +203,115 @@ local VisualsTab = Window:CreateTab({
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LP = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
 local hpConnections = {}
 local hpEnabled = false
 
 local function addHPBar(player)
-    if player == LP then return end
-    local char = player.Character or player.CharacterAdded:Wait()
-    if not char then return end
-    if char:FindFirstChild("LuaLandHPBar") then return end
+	if player == LP then return end
+	local char = player.Character or player.CharacterAdded:Wait()
+	if not char then return end
+	if char:FindFirstChild("LuaLandHPBar") then return end
 
-    local billboard = Instance.new("BillboardGui")
-    billboard.Name = "LuaLandHPBar"
-    billboard.Size = UDim2.new(0, 50, 0, 5)
-    billboard.StudsOffset = Vector3.new(0, 4, 0)
-    billboard.AlwaysOnTop = true
-    billboard.Parent = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
+	local head = char:WaitForChild("Head", 5)
+	if not head then return end
 
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 1, 0)
-    frame.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-    frame.BorderSizePixel = 0
-    frame.Parent = billboard
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "LuaLandHPBar"
+	billboard.Size = UDim2.new(0, 60, 0, 8)
+	billboard.StudsOffset = Vector3.new(0, 3.2, 0)
+	billboard.AlwaysOnTop = true
+	billboard.Parent = head
 
-    hpConnections[player] = RunService.RenderStepped:Connect(function()
-        local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            local hpPercent = humanoid.Health / humanoid.MaxHealth
-            frame.Size = UDim2.new(hpPercent, 0, 1, 0)
-            if hpPercent > 0.5 then
-                frame.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-            elseif hpPercent > 0.25 then
-                frame.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
-            else
-                frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-            end
-        end
-    end)
+	local border = Instance.new("Frame")
+	border.Size = UDim2.new(1, 0, 1, 0)
+	border.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	border.BorderSizePixel = 0
+	border.Parent = billboard
+
+	local borderCorner = Instance.new("UICorner")
+	borderCorner.CornerRadius = UDim.new(0, 12)
+	borderCorner.Parent = border
+
+	local bg = Instance.new("Frame")
+	bg.Size = UDim2.new(1, -2, 1, -2)
+	bg.Position = UDim2.new(0, 1, 0, 1)
+	bg.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	bg.BorderSizePixel = 0
+	bg.Parent = border
+
+	local bgCorner = Instance.new("UICorner")
+	bgCorner.CornerRadius = UDim.new(0, 12)
+	bgCorner.Parent = bg
+
+	local bar = Instance.new("Frame")
+	bar.Size = UDim2.new(1, 0, 1, 0)
+	bar.BackgroundColor3 = Color3.fromRGB(50, 200, 80)
+	bar.BorderSizePixel = 0
+	bar.Parent = bg
+
+	local barCorner = Instance.new("UICorner")
+	barCorner.CornerRadius = UDim.new(0, 12)
+	barCorner.Parent = bar
+
+	hpConnections[player] = RunService.RenderStepped:Connect(function()
+		local humanoid = char:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			local hpPercent = humanoid.Health / humanoid.MaxHealth
+			bar.Size = UDim2.new(hpPercent, 0, 1, 0)
+			if hpPercent > 0.5 then
+				bar.BackgroundColor3 = Color3.fromRGB(50, 200, 80)
+			else
+				bar.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+			end
+		end
+	end)
 end
 
 local function removeHPBar(player)
-    local char = player.Character
-    if char then
-        local gui = char:FindFirstChild("LuaLandHPBar")
-        if gui then gui:Destroy() end
-    end
-    if hpConnections[player] then
-        hpConnections[player]:Disconnect()
-        hpConnections[player] = nil
-    end
+	local char = player.Character
+	if char then
+		local gui = char:FindFirstChild("LuaLandHPBar")
+		if gui then gui:Destroy() end
+	end
+	if hpConnections[player] then
+		hpConnections[player]:Disconnect()
+		hpConnections[player] = nil
+	end
 end
 
 local function enableHPBars()
-    if hpEnabled then return end
-    hpEnabled = true
-    for _, player in ipairs(Players:GetPlayers()) do
-        addHPBar(player)
-        player.CharacterAdded:Connect(function()
-            task.wait(0.1)
-            addHPBar(player)
-        end)
-    end
-    Players.PlayerAdded:Connect(function(player)
-        addHPBar(player)
-        player.CharacterAdded:Connect(function()
-            task.wait(0.1)
-            addHPBar(player)
-        end)
-    end)
+	if hpEnabled then return end
+	hpEnabled = true
+	for _, player in ipairs(Players:GetPlayers()) do
+		addHPBar(player)
+		player.CharacterAdded:Connect(function()
+			task.wait(0.1)
+			addHPBar(player)
+		end)
+	end
+	Players.PlayerAdded:Connect(function(player)
+		addHPBar(player)
+		player.CharacterAdded:Connect(function()
+			task.wait(0.1)
+			addHPBar(player)
+		end)
+	end)
 end
 
 local function disableHPBars()
-    if not hpEnabled then return end
-    hpEnabled = false
-    for _, player in ipairs(Players:GetPlayers()) do
-        removeHPBar(player)
-    end
+	if not hpEnabled then return end
+	hpEnabled = false
+	for _, player in ipairs(Players:GetPlayers()) do
+		removeHPBar(player)
+	end
 end
 
 VisualsTab:CreateToggle("Health Bar", function(Value)
-    if Value then
-        enableHPBars()
-    else
-        disableHPBars()
-    end
+	if Value then
+		enableHPBars()
+	else
+		disableHPBars()
+	end
 end)
 
 -- Esp (Visuals)
