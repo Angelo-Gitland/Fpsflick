@@ -119,6 +119,26 @@ MainTab:CreateToggle("Aimbot", function(Value)
     end
 end)
 
+local autoFireConnection
+
+MainTabTab:CreateToggle("Auto-Fire", function(Value)
+	if Value then
+		autoFireConnection = RunService.RenderStepped:Connect(function()
+			local target = getClosestPlayer()
+			if target then
+				if getfenv().mouse1click then
+					getfenv().mouse1click()
+				end
+			end
+		end)
+	else
+		if autoFireConnection then
+			autoFireConnection:Disconnect()
+			autoFireConnection = nil
+		end
+	end
+end)
+
 -- Fov Circle (Aimbot)
 local fovRadius = 0
 local fovCircle = Drawing.new("Circle")
@@ -160,6 +180,27 @@ MainTab:CreateToggle("Auto-Fire", function(Value)
 			autoFireConnection = nil
 		end
 	end
+end)
+
+local fovRadius = 0
+local fovCircle = Drawing.new("Circle")
+fovCircle.Visible = false
+fovCircle.Color = Color3.fromRGB(255, 0, 0)
+fovCircle.Thickness = 1.5
+fovCircle.Filled = false
+fovCircle.NumSides = 64
+
+RunService.RenderStepped:Connect(function()
+	if fovCircle.Visible then
+		local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+		fovCircle.Position = center
+		fovCircle.Radius = fovRadius
+	end
+end)
+
+MainTab:CreateSlider("FOV Size", 0, 200, function(Value)
+	fovRadius = Value
+	fovCircle.Visible = Value > 0
 end)
 
 local VisualsTab = Window:CreateTab({
