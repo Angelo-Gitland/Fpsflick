@@ -120,55 +120,38 @@ MainTab:CreateToggle("Aimbot", function(Value)
 end)
 
 -- Fov Circle (Aimbot)
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local Camera = workspace.CurrentCamera
 
-local fovCircle
-local fovConnection
-local fovEnabled = false
-local fovRadius = 150
+local fovRadius = 0
+local fovCircle = Drawing.new("Circle")
+fovCircle.Visible = false
+fovCircle.Color = Color3.fromRGB(255, 255, 255)
+fovCircle.Thickness = 1.5
+fovCircle.Filled = false
+fovCircle.NumSides = 64
 
-local function enableFOV()
-    if fovEnabled then return end
-    fovEnabled = true
-    fovCircle = Drawing.new("Circle")
-    fovCircle.Color = Color3.fromRGB(255, 0, 0)
-    fovCircle.Thickness = 2
-    fovCircle.NumSides = 64
-    fovCircle.Radius = fovRadius
-    fovCircle.Filled = false
-    fovCircle.Visible = true
-
-    fovConnection = RunService.RenderStepped:Connect(function()
-        local mousePos = UserInputService:GetMouseLocation()
-        fovCircle.Position = Vector2.new(mousePos.X, mousePos.Y)
-    end)
+local function updateFOVCircle()
+	local center = Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y / 2)
+	fovCircle.Position = center
+	fovCircle.Radius = fovRadius
 end
 
-local function disableFOV()
-    if not fovEnabled then return end
-    fovEnabled = false
-    if fovConnection then
-        fovConnection:Disconnect()
-        fovConnection = nil
-    end
-    if fovCircle then
-        fovCircle:Remove()
-        fovCircle = nil
-    end
-end
-
-MainTab:CreateToggle("Fov Circle", function(Value)
-    if Value then
-        enableFOV()
-    else
-        disableFOV()
-    end
+RunService.RenderStepped:Connect(function()
+	if fovCircle.Visible then
+		updateFOVCircle()
+	end
 end)
-local RunService = game:GetService("RunService")
-local Mouse = game.Players.LocalPlayer:GetMouse()
-local autoFireConnection
+
+AimbotTab:CreateSlider("FOV Size", 0, 500, function(Value)
+	fovRadius = Value
+	if Value > 0 then
+		fovCircle.Visible = true
+	else
+		fovCircle.Visible = false
+	end
+end)
 
 -- Auto-Fire (Aimbot)
 MainTab:CreateToggle("Auto-Fire", function(Value)
